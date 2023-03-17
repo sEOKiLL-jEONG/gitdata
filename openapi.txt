@@ -1,0 +1,580 @@
+//================================
+//금융감독원 OpenAPI Test
+//https://100lifeplan.fss.or.kr/openapi/api/rpCorpResultList.json?key=0fcffa85128f057d8df780c9184c40ca&year=2019&quarter=3&sysType=1
+//================================
+//Manager : sEOK-iLL, jEONG
+//Data    : 2023.03.07
+//================================
+var http = require('http');
+var fs = require('fs');
+var express = require('express');
+const axios = require('axios');
+const qs = require('querystring');
+var app = express();
+var request = require('request');
+
+const sHEADER = '<div style="background-color: gold; padding:10px; width: 300px; height: auto; cursor: pointer;" ' +
+' onclick="location.href=\'/\';">메인메뉴</div>';
+const sTITLE = '<p><b><font color="orange">[ 금융감독원 OpenAPI 테스트 ]</font></b></p>';
+function sTopTile(s) {
+  console.log('====' + s + '====');
+  return ('<p><b><font color="blue">[ ' + s + ' ]</font></b></p>');
+}
+const sBASE_URL = "https://100lifeplan.fss.or.kr/openapi/api/";
+const seokill_id = "c9184c40ca0fcffa85128f057d8df780";
+
+//=============================================================
+app.get('/', function (request, response) {
+
+    var url = '';
+    console.log('요청 url = ' + request.url);
+
+    if(request.url == '/favicon.ico') {
+        return response.writeHead(404);
+    }
+    else if (request.url == '/') {
+      url = '/mymain2.html';
+    }
+    else {
+      url = request.url;
+    }
+    response.writeHead(200);
+    console.log('html의 위치는 ' + __dirname + url);
+    response.end(fs.readFileSync(__dirname + url));
+});
+//=============================================================
+app.get('/html/:htmlname', function (request, response) {
+
+  var url = '';
+  var pagename = '/' + request.params.htmlname;
+
+  url = pagename;
+  response.writeHead(200);
+  console.log('html의 위치는 ' + __dirname + url);
+  response.end(fs.readFileSync(__dirname + url));
+});
+//=============================================================
+app.get('/openapi/rpCorpResultList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('퇴직연금 금융사별 수익율');
+
+  var year = req.query['year'];
+  //var val_year = req.param('year');
+  var quarter = req.query['quarter'];
+  var sysType = req.query['systype'];
+
+  var retirement_url = sBASE_URL + "rpCorpResultList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&year=" + year + 
+                    "&quarter=" + quarter + 
+                    "&sysType=" + sysType;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>금융사</td>' +
+                 '<td bgcolor=5982cb>구분</td>' +
+                 '<td bgcolor=a2ca5a>수익율</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].area + '</td>';
+        htmlStr += '<td>';   
+
+        let iiii = objParse.list[i].list;
+        htmlStr += iiii[0].division;
+        htmlStr += '</td>';    
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/rpCorpBurdenRatioList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('퇴직연금 비교공시 총비용 부담률');
+
+  var year = req.query['year'];
+
+  var retirement_url = sBASE_URL + "rpCorpBurdenRatioList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&year=" + year;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=5982cb>권역</td>' +                 
+                 '<td bgcolor=909090>사업자</td>' +
+                 '<td bgcolor=a2ca5a>DB총비용부담률</td></tr>';
+      
+      for ( var i=0 ; i < objParse.count; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].area + '</td>';
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].dbTotalCostRate + '</td>';   
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+
+//=======================================================
+app.get('/openapi/rpCorpCustomFeeList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('퇴직연금 비교공시 맞춤형 수수료 비교');
+
+  var systype = req.query['systype'];
+  var term = req.query['term'];
+  var reserve = req.query['reserve'];
+
+  var retirement_url = sBASE_URL + "rpCorpCustomFeeList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&sysType=" + systype +
+                    "&term=" + term +
+                    "&reserve=" + reserve; 
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=5982cb>사업자</td>' +
+                 '<td bgcolor=a2ca5a>수수료율합계</td></tr>';
+      
+      for ( var i=0 ; i < objParse.count; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].totalFeeRate + '</td>';   
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+
+//=======================================================
+
+app.get('/openapi/rpGuaranteedProdSupplyList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('퇴직연금 비교공시 원리금보장상품 제공현황');
+
+  var areacode = req.query['areacode'];
+
+  var retirement_url = sBASE_URL + "rpGuaranteedProdSupplyList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&areaCode=" + areacode;
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=939292>권역</td>' +
+                 '<td bgcolor=5982cb>사업자</td>' +
+                 '<td bgcolor=a2ca5a>특정사업자제공한도</td></tr>';
+      
+      for ( var i=0 ; i < objParse.count; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].area + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].supplier + '</td>';
+        htmlStr += '<td>' + objParse.list[i].limitAmount + '</td>';   
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+
+//=======================================================
+app.get('/openapi/rpGuaranteedProdList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('퇴직연금 비교공시 원리금보장 퇴직연금상품');
+
+  var areacode = req.query['areacode'];
+  var systype = req.query['systype'];
+  var producttype = req.query['producttype'];
+  var reportdate = req.query['reportdate'];
+
+  var retirement_url = sBASE_URL + "rpGuaranteedProdList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&areaCode=" + areacode +
+                    "&sysType=" + systype +
+                    "&productType=" + producttype +
+                    "&reportDate=" + reportdate;             
+                    
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=5982cb>제공기관</td>' +
+                 '<td bgcolor=a2ca5a>상품</td></tr>';
+      
+      for ( var i=0 ; i < objParse.count; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].product + '</td>';   
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+
+//=======================================================
+app.get('/openapi/psCorpList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금저축 회사별 수익율');
+
+  var year = req.query['year'];
+  var quarter = req.query['quarter'];
+  var areacode = req.query['areacode'];
+
+  var retirement_url = sBASE_URL + "psCorpList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&year=" + year + 
+                    "&quarter=" + quarter + 
+                    "&areaCode=" + areacode;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>권역</td>' +
+                 '<td bgcolor=5982cb>금융회사</td>' +
+                 '<td bgcolor=a2ca5a>적립금</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].area + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].reserve + '</td>';
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/psProdList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금저축 상품별 수익율');
+
+  var year = req.query['year'];
+  var quarter = req.query['quarter'];
+  var areacode = req.query['areacode'];
+
+  var retirement_url = sBASE_URL + "psProdList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&year=" + year + 
+                    "&quarter=" + quarter + 
+                    "&areaCode=" + areacode;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>권역</td>' +
+                 '<td bgcolor=5982cb>금융회사</td>' +
+                 '<td bgcolor=a2ca5a>상품</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].area + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].product + '</td>';
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/psGuaranteedProdList', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금저축 원리금보장 연금저축보험');
+
+  var areacode = req.query['areacode'];
+  var channelcode = req.query['channelcode'];
+
+  var retirement_url = sBASE_URL + "psGuaranteedProdList.json";
+  retirement_url += "?key=" + seokill_id + 
+                    "&areaCode=" + areacode + 
+                    "&channelCode=" + channelcode;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>작성기준일</td>' +
+                 '<td bgcolor=5982cb>금융회사</td>' +
+                 '<td bgcolor=929292>상품</td>' +                 
+                 '<td bgcolor=a2ca5a>공시이율</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].reportDate + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].company + '</td>';
+        htmlStr += '<td>' + objParse.list[i].product + '</td>';
+        htmlStr += '<td>' + objParse.list[i].publishedInterestRate + '</td>';
+
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/pensionStat', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금통계-연금(공적-사적)통계');
+
+  var retirement_url = sBASE_URL + "pensionStat.json";
+  retirement_url += "?key=" + seokill_id;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>연도</td>' +
+                 '<td bgcolor=5982cb>구분</td>' +
+                 '<td bgcolor=a2ca5a>값</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].year + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].item + '</td>';
+        htmlStr += '<td>' + objParse.list[i].value + '</td>';
+
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/publicPensionStat', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금통계-공적연금 통계');
+
+  var retirement_url = sBASE_URL + "publicPensionStat.json";
+  retirement_url += "?key=" + seokill_id;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>연도</td>' +
+                 '<td bgcolor=5982cb>구분</td>' +
+                 '<td bgcolor=a2ca5a>값</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].year + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].item + '</td>';
+        htmlStr += '<td>' + objParse.list[i].value + '</td>';
+
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/personalPensionStat', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금통계-개인연금 통계');
+  
+  var stattype = req.query['stattype'];
+  var retirement_url = sBASE_URL + "personalPensionStat.json";
+  retirement_url += "?key=" + seokill_id +
+                    "&statType=" + stattype;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>연도</td>' +
+                 '<td bgcolor=5982cb>구분</td>' +
+                 '<td bgcolor=a2ca5a>값</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].year + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].item + '</td>';
+        htmlStr += '<td>' + objParse.list[i].value + '</td>';
+
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+app.get('/openapi/retirementPensionStat', function (req, res) {
+  var htmlStr = sHEADER + sTITLE;
+  htmlStr += sTopTile('연금통계-퇴직연금 통계');
+  
+  var stattype = req.query['stattype'];
+  var retirement_url = sBASE_URL + "retirementPensionStat.json";
+  retirement_url += "?key=" + seokill_id +
+                    "&statType=" + stattype;
+
+  console.log('url : ' + retirement_url);
+
+  axios.get(retirement_url 
+  )
+    .then( response=>{
+      const objJSON = JSON.stringify(response.data);
+      const objParse = JSON.parse(objJSON);
+
+      htmlStr += '<table border=1><tr>' +
+                 '<td bgcolor=e9e9e9>순</td>' +
+                 '<td bgcolor=bacae9>연도</td>' +
+                 '<td bgcolor=5982cb>구분</td>' +
+                 '<td bgcolor=a2ca5a>값</td></tr>';
+      
+      for ( var i=0 ; i < objParse.list.length; i++) {
+        htmlStr += '<tr><td>' + (i + 1) + '</td>'; 
+        htmlStr += '<td>' + objParse.list[i].year + '</td>';        
+        htmlStr += '<td>' + objParse.list[i].item + '</td>';
+        htmlStr += '<td>' + objParse.list[i].value + '</td>';
+
+      }
+      htmlStr += '</table>';
+
+      res.writeHead(200, { 'Content-Type': 'text/html;charset=UTF-8' });
+      res.write(htmlStr);
+      res.end();
+    })
+    .catch( error =>{
+      console.log( error );
+    })
+});
+//=======================================================
+
+const port = 3000;
+app.listen(port, ()=>{
+    console.log('Server listening on port ', port);
+});
